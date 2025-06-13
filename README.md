@@ -6,6 +6,12 @@
 
 Proyecto para predecir calorias quemadas
 
+## 🚀 Guía de Reproducibilidad
+
+Para configurar el entorno de desarrollo desde cero y replicar este proyecto, por favor sigue la **[Guía de Reproducibilidad detallada](docs/REPRODUCIBILIDAD.md)**.
+
+En ella encontrarás todos los pasos necesarios, desde la configuración de la máquina virtual en Azure hasta la inicialización del repositorio.
+
 ## Project Organization
 
 ```
