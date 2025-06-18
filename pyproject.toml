@@ -16,6 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License"
 ]
 dependencies = [
+    "fastparquet>=2024.11.0",
     "jupyterlab>=4.4.3",
     "lightgbm>=4.6.0",
     "loguru",
@@ -23,6 +24,7 @@ dependencies = [
     "numpy>=2.3.0",
     "pandas>=2.3.0",
     "pip",
+    "pyarrow>=20.0.0",
     "python-dotenv",
     "ruff",
     "scikit-learn>=1.7.0",
