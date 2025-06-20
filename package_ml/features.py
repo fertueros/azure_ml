@@ -95,13 +95,13 @@ def preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
     # Conversión de género
-    out["Gender"] = (out["Gender"] == "male").astype("int8")
+    out["Gender"] = (out["Gender"] == "male").astype(bool)
 
     # BMI
     out["BMI"] = out["Weight"] / np.square(out["Height"] / 100)
 
     # Frecuencias cardíacas teóricas
-    out["FCMT_simple"] = 220 - out["Age"]
+    out["FCMT_simple"] = 220.0 - out["Age"]
     out["FCMT_tanaka"] = 208 - 0.7 * out["Age"]
 
     # Porcentaje sobre FC máx.
@@ -122,8 +122,8 @@ def preprocessing(df: pd.DataFrame) -> pd.DataFrame:
         out[f"{col}_log"] = np.log1p(out[col])
    
     # Bandera de temperatura alta y sobrepeso
-    out["is_temp_high"] = (out["Body_Temp"] > 39).astype("int8")
-    out["is_overweight"] = (out["BMI"] > 27).astype("int8")
+    out["is_temp_high"] = (out["Body_Temp"] > 39).astype(bool)
+    out["is_overweight"] = (out["BMI"] > 27).astype(bool)
 
     out["feno_var"] = np.where(
         out["Gender"] == 1,
