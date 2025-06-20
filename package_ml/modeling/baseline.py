@@ -2,6 +2,7 @@ from __future__ import annotations
 import mlflow
 import numpy as np
 import pandas as pd
+import gc
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
@@ -17,11 +18,11 @@ from sklearn.metrics import make_scorer, mean_absolute_error, root_mean_squared_
 MODELS = {
     "ridge": Ridge(random_state=42),
     "lasso": Lasso(random_state=42, max_iter=5000),
-    "knn": KNeighborsRegressor(n_jobs=-1),
     "random_forest": RandomForestRegressor(random_state=42, n_jobs=-1),
     "hgb": HistGradientBoostingRegressor(random_state=42),
     "xgb": XGBRegressor(random_state=42),
     "lgbm": LGBMRegressor(random_state=42, verbose=-1),
+    "knn": KNeighborsRegressor(n_jobs=-1),
 }
 
 # Diccionario de scorers
@@ -66,48 +67,65 @@ def train_baselines_with_mlflow(
         experiment_name: str = "baseline_models"
 ) -> pd.DataFrame:
     """
-    Entrena modelos base, registra los resultados con MLflow y devuelve las métricas.
+    Entrena modelos base, registra resultados con MLflow y devuelve un resumen de métricas.
+    Usa autolog para parámetros/tags y logging manual para métricas de CV para mayor fiabilidad.
     """
     mlflow.set_experiment(experiment_name)
-    mlflow.sklearn.autolog(log_models=True, silent=True)
-    # out_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Usaremos autolog, pero solo para lo que funciona bien (parámetros, tags).
+    # Desactivamos el logging de modelos para hacerlo manualmente y tener más control.
+    mlflow.sklearn.autolog(log_models=False, log_input_examples=False, log_model_signatures=False, silent=True)
+
+    input_example = X.head(10)
 
     metrics_rows = []
     cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
 
     for name in MODELS:
         print(f"--- Entrenando modelo: {name} ---")
-        # MLflow autologging crea la ejecución automáticamente al llamar a una función de sklearn
-        # como cross_validate, pero usar un 'with' nos da más control sobre los tags.
-        with mlflow.start_run(run_name=f"{name}_baseline") as run:
+        with mlflow.start_run(run_name=f"{name}") as run:
             
+            # Autolog se encargará de los parámetros del pipeline cuando llamemos a cross_validate.
+            # Añadimos nuestros tags personalizados manualmente.
             mlflow.set_tag("model_name", name)
             mlflow.set_tag("target_transformed", str(transform_target))
             
             pipe = _build_pipeline(name, transform_target=transform_target)
 
-            # cross_validate activará autologging. Registrará los parámetros del pipe,
-            # las métricas promedio de CV y el primer estimador.
             scores = cross_validate(
                 pipe, X, y,
                 scoring=SCORERS,
                 cv=cv,
-                n_jobs=-1,
-                return_estimator=False  # Ya no necesitamos devolver el estimador
+                return_estimator=True # Necesitamos el estimador para guardarlo
             )
             
-            # Extraemos las métricas para nuestro DataFrame resumen
-            # Autolog ya las ha guardado en MLflow, esto es solo para la salida de la función
-            row = {"model": name}
-            for metric_name, value in scores.items():
+            # Extraemos y calculamos el promedio de las métricas de los folds
+            val_metrics = {}
+            for metric_name, value_list in scores.items():
                 if "test_" in metric_name:
-                    # Limpiamos el nombre para la tabla: 'test_val_rmse' -> 'rmse'
-                    clean_metric_name = metric_name.replace("test_val_", "")
-                    row[clean_metric_name] = np.mean(value)
+                    # Limpiamos el nombre: 'test_val_rmse' -> 'val_rmse'
+                    clean_metric_name = metric_name.replace("test_", "")
+                    val_metrics[clean_metric_name] = round(np.mean(value_list),4)
             
+            # Registramos las métricas manualmente
+            print(f"Registrando métricas para {name}: {val_metrics}")
+            mlflow.log_metrics(val_metrics)
+            
+            # --- LOGGING MANUAL DEL MODELO ---
+            # Guardamos el primer estimador del CV como el artefacto del modelo
+            first_estimator = scores["estimator"][0]
+            mlflow.sklearn.log_model(
+                sk_model=first_estimator,
+                name="model", # MLflow lo guardará en la carpeta 'artifacts/model'
+                input_example=input_example
+            )
+
+            # Preparamos la fila para nuestro DataFrame de resumen
+            row = {"model": name}
+            row.update({key.replace('val_', ''): value for key, value in val_metrics.items()})
             metrics_rows.append(row)
             
-    # Desactivamos autologging al final para no interferir con otros notebooks
+    # Desactivamos autologging al final
     mlflow.sklearn.autolog(disable=True)
             
     return pd.DataFrame(metrics_rows)
