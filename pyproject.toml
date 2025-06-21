@@ -16,13 +16,16 @@ classifiers = [
     "License :: OSI Approved :: MIT License"
 ]
 dependencies = [
+    "fastparquet>=2024.11.0",
     "jupyterlab>=4.4.3",
     "lightgbm>=4.6.0",
     "loguru",
     "matplotlib>=3.10.3",
+    "mlflow>=3.1.0",
     "numpy>=2.3.0",
     "pandas>=2.3.0",
     "pip",
+    "pyarrow>=20.0.0",
     "python-dotenv",
     "ruff",
     "scikit-learn>=1.7.0",
