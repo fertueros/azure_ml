@@ -186,7 +186,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-# Otros
-.virtual_documents/
-mlruns/
