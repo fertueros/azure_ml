@@ -64,22 +64,6 @@ def add_feature_cross_terms(
     return out
 
 
-def add_interaction_features(
-    df: pd.DataFrame, features: Iterable[str] = NUM_COLS
-) -> pd.DataFrame:
-    """
-    Suma, resta y división entre pares de variables numéricas.
-    """
-    out = df.copy()
-    for f1, f2 in combinations(features, 2):
-        out[f"{f1}_plus_{f2}"] = out[f1] + out[f2]
-        out[f"{f1}_minus_{f2}"] = out[f1] - out[f2]
-        out[f"{f2}_minus_{f1}"] = out[f2] - out[f1]
-        out[f"{f1}_div_{f2}"] = out[f1] / (out[f2] + 1e-5)
-        out[f"{f2}_div_{f1}"] = out[f2] / (out[f1] + 1e-5)
-    return out
-
-
 def squares(df: pd.DataFrame, features: Iterable[str] = NUM_COLS) -> pd.DataFrame:
     """Añade el cuadrado de cada columna numérica."""
     out = df.copy()
@@ -112,12 +96,10 @@ def preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     
     # Desviación de temperatura corporal
     out["Body_Temp_Deviation"] = out["Body_Temp"] - 37.0
-    
-    # cudrado y cubo de FCMT
-    out['Pct_FCMT_sq'] = out['Percent_FCMT_simple']**2
-    out['Pct_FCMT_cu'] = out['Percent_FCMT_simple']**3
 
-    # Logs (ejemplo)
+    out["Duration_div_Body_Temp"] = out["Duration"] / (out["Body_Temp"] + + 1e-5)
+    
+    # Logs
     for col in ["Duration", "Heart_Rate", "Body_Temp", "Weight", "Duration_x_Heart_Rate"]:
         out[f"{col}_log"] = np.log1p(out[col])
    
