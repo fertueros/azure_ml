@@ -137,12 +137,20 @@ python run.py evaluate
 # Realizar una predicción en un nuevo archivo
 python run.py predict /ruta/a/tus/datos.csv
 ```
-### Explorar Experimentos
-Para visualizar los resultados de los experimentos de optimización y modelado, ejecuta la interfaz de usuario de MLflow desde la raíz del proyecto:
+### Explorar Experimentos con MLflow
 
-```bash
-mlflow ui
-```
+Todos los experimentos de modelado y optimización de hiperparámetros se registran utilizando MLflow. Para explorar los resultados de forma interactiva:
+
+1.  Abre una terminal en la **raíz del proyecto**.
+2.  Ejecuta el siguiente comando para iniciar la interfaz de usuario de MLflow:
+
+    ```bash
+    mlflow ui --backend-store-uri ./mlruns
+    ```
+3.  Abre tu navegador y ve a **`http://localhost:5000`**.
+
+*   **`--backend-store-uri ./mlruns`**: Este comando le dice explícitamente a MLflow que use la carpeta `mlruns` del directorio actual como la base de datos de experimentos. Esto evita problemas si ejecutas el comando desde otra ubicación.
+
 ---
 
 ## 📜 8. Project Organization
