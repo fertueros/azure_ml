@@ -3,7 +3,10 @@ import numpy as np
 import lightgbm as lgb
 import optuna
 import mlflow
-from optuna.pruners import MedianPruner
+import joblib
+from pathlib import Path
+from sklearn.compose import TransformedTargetRegressor
+# from optuna.pruners import MedianPruner
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import root_mean_squared_error
 
@@ -94,3 +97,42 @@ def optimize_lgbm_hyperparameters(
         mlflow.set_tag("n_trials", str(n_trials))
 
     return study
+
+def train_final_model(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    best_params: dict,
+    model_path: Path
+) -> None:
+    """
+    Entrena el modelo final con los mejores hiperparámetros y todos los datos
+    de entrenamiento, y lo guarda en disco.
+
+    Args:
+        X_train (pd.DataFrame): DataFrame de características de entrenamiento.
+        y_train (pd.Series): Serie del target de entrenamiento.
+        best_params (dict): Diccionario con los mejores hiperparámetros de Optuna.
+        model_path (Path): Ruta donde se guardará el modelo entrenado.
+    """
+    print("--- Entrenando el modelo final con todos los datos de entrenamiento... ---")
+    
+    # Asegurarse de que el directorio del modelo exista
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # 1. Definir el modelo con los mejores parámetros
+    final_model_base = lgb.LGBMRegressor(random_state=42, **best_params, verbosity=-1)
+
+    # 2. Envolverlo en el transformador de target para que el pipeline sea consistente
+    final_model_pipeline = TransformedTargetRegressor(
+        regressor=final_model_base,
+        func=np.log1p,
+        inverse_func=np.expm1
+    )
+
+    # 3. Entrenar el pipeline con todos los datos
+    final_model_pipeline.fit(X_train, y_train)
+
+    # 4. Guardar (serializar) el pipeline completo
+    joblib.dump(final_model_pipeline, model_path)
+    
+    print(f"Modelo final entrenado y guardado en: {model_path}")
